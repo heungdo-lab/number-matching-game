@@ -20,22 +20,39 @@ const GameOverScreen = ({ onPlayAgain, onGoHome, onStartGame, score }) => {
   const [{ stage, totalScore }, setGameInfo] = useContext(GameContext);
 
   const nextStage = async () => {
-    await AsyncStorage.setItem("STAGE", (stage + 1).toString());
-    await AsyncStorage.setItem("TOTAL_SCORE", (totalScore + score).toString());
-    setGameInfo((curState) => ({
-      stage: curState.stage + 1,
-      totalScore: curState.totalScore + score,
-    }));
-    onStartGame();
+    if (stage < 110) {
+      await AsyncStorage.setItem("STAGE", (stage + 1).toString());
+      await AsyncStorage.setItem(
+        "TOTAL_SCORE",
+        (totalScore + score).toString()
+      );
+      setGameInfo((curState) => ({
+        stage: curState.stage + 1,
+        totalScore: curState.totalScore + score,
+      }));
+      onStartGame();
+    }
   };
 
   const successStage = async () => {
-    await AsyncStorage.setItem("STAGE", (stage + 1).toString());
-    await AsyncStorage.setItem("TOTAL_SCORE", (totalScore + score).toString());
-    setGameInfo((curState) => ({
-      stage: curState.stage + 1,
-      totalScore: curState.totalScore + score,
-    }));
+    if (stage < 110) {
+      await AsyncStorage.setItem("STAGE", (stage + 1).toString());
+      await AsyncStorage.setItem(
+        "TOTAL_SCORE",
+        (totalScore + score).toString()
+      );
+      setGameInfo((curState) => ({
+        stage: curState.stage + 1,
+        totalScore: curState.totalScore + score,
+      }));
+    } else if (stage === 110) {
+      await AsyncStorage.setItem("GAME_END", "true");
+      setGameInfo((curState) => ({
+        ...curState,
+        gameEnd: true,
+      }));
+    }
+
     onGoHome();
   };
 
@@ -47,25 +64,24 @@ const GameOverScreen = ({ onPlayAgain, onGoHome, onStartGame, score }) => {
     onPlayAgain();
   };
 
+  const backAction = () => {
+    Alert.alert("Hold on!", "Are you sure you want to go home?", [
+      {
+        text: "Cancel",
+        onPress: () => null,
+        style: "cancel",
+      },
+      { text: "YES", onPress: score > 0 ? successStage : null },
+    ]);
+
+    return true;
+  };
+
   useEffect(() => {
-    const backAction = () => {
-      Alert.alert("Hold on!", "Are you sure you want to go home?", [
-        {
-          text: "Cancel",
-          onPress: () => null,
-          style: "cancel",
-        },
-        { text: "YES", onPress: score > 0 ? successStage : null },
-      ]);
-      return true;
-    };
+    BackHandler.addEventListener("hardwareBackPress", backAction);
 
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-
-    return () => backHandler.remove();
+    return () =>
+      BackHandler.removeEventListener("hardwareBackPress", backAction);
   }, []);
 
   return (
@@ -80,7 +96,9 @@ const GameOverScreen = ({ onPlayAgain, onGoHome, onStartGame, score }) => {
         <Image
           source={
             score > 0
-              ? require("../../assets/success.png")
+              ? stage === 110
+                ? require("../../assets/congratulation.png")
+                : require("../../assets/success.png")
               : require("../../assets/fail.png")
           }
           style={styles.image}
@@ -90,14 +108,20 @@ const GameOverScreen = ({ onPlayAgain, onGoHome, onStartGame, score }) => {
       <View style={styles.buttonContainer}>
         <StageButton onPress={replayStage}>{PLAY_AGAIN}</StageButton>
         {score > 0 ? (
-          <StageButton onPress={nextStage}>{NEXT_STAGE}</StageButton>
+          stage === 110 ? (
+            <StageButton onPress={successStage}>{GO_HOME}</StageButton>
+          ) : (
+            <StageButton onPress={nextStage}>{NEXT_STAGE}</StageButton>
+          )
         ) : null}
       </View>
-      <View style={styles.goHomeContainer}>
-        <MainButton onPress={score > 0 ? successStage : failStage}>
-          {GO_HOME}
-        </MainButton>
-      </View>
+      {stage === 110 ? null : (
+        <View style={styles.goHomeContainer}>
+          <MainButton onPress={score > 0 ? successStage : failStage}>
+            {GO_HOME}
+          </MainButton>
+        </View>
+      )}
     </View>
   );
 };
